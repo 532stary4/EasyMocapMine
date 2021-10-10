@@ -11,6 +11,7 @@ from os.path import join
 from tqdm import tqdm
 from glob import glob
 import numpy as np
+import threading
 
 mkdir = lambda x: os.makedirs(x, exist_ok=True)
 
@@ -34,7 +35,8 @@ def extract_video(videoname, path, start, end, step):
         if not ret:continue
         cv2.imwrite(join(outpath, '{:06d}.jpg'.format(cnt)), frame)
     video.release()
-    return base
+    #return base
+    subs.append(base)
 
 def extract_2d(openpose, image, keypoints, render, args):
     skip = False
@@ -256,9 +258,14 @@ if __name__ == "__main__":
         if len(subs_videos) > len(subs_image):
             videos = sorted(glob(join(args.path, 'videos', '*.mp4')))
             subs = []
+            threading_list = []
             for video in videos:
-                basename = extract_video(video, args.path, start=args.start, end=args.end, step=args.step)
-                subs.append(basename)
+                temp_thread = threading.Thread(target=extract_video, args=(video, args.path, args.start, args.end, args.step, ))
+                temp_thread.start()
+                #basename = extract_video(video, args.path, start=args.start, end=args.end, step=args.step)
+                #subs.append(basename)
+            for threads in threading_list:
+                threads.join()
         else:
             subs = sorted(os.listdir(image_path))
         print('cameras: ', ' '.join(subs))
