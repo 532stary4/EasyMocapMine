@@ -1,9 +1,6 @@
 ipdb
-joblib
 tqdm
 opencv-python
 pyrender
 yacs
 tabulate
-pyrender
-chumpy

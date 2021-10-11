@@ -73,12 +73,13 @@ data
 - python>=3.6
 - torch==1.4.0
 - torchvision==0.5.0
-- opencv-python
 - [pyrender](https://pyrender.readthedocs.io/en/latest/install/index.html#python-installation): for visualization, or [pyrender for server without a screen](https://pyrender.readthedocs.io/en/latest/install/index.html#getting-pyrender-working-with-osmesa).
-- chumpy: for loading SMPL model
 - OpenPose[4]: for 2D pose
 
 Some of python libraries can be found in `requirements.txt`. You can test different version of PyTorch.
+```bash
+pip install -r requirements.txt
+```
 
 ## 3. Install
 
