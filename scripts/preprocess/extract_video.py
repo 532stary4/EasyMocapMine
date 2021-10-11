@@ -281,6 +281,8 @@ if __name__ == "__main__":
                 for threads in threading_list:
                     threads.join()
                 
+                os.system('cls' if os.name == 'nt' else 'clear')
+                
             else:
                 for video in videos:
                     extract_video(video, args.path, start=args.start, end=args.end, step=args.step)
@@ -314,6 +316,10 @@ if __name__ == "__main__":
                     
                 for threads in threading_list:
                     threads.join()
+                
+                os.system('cls' if os.name == 'nt' else 'clear')
+                print('Done')
+                print('')
                         
             else:
                 for sub in subs:
