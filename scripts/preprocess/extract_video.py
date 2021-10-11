@@ -16,27 +16,24 @@ import threading
 mkdir = lambda x: os.makedirs(x, exist_ok=True)
 
 def extract_video(videoname, path, start, end, step):
-    base = os.path.basename(videoname).replace('.mp4', '')
-    if not os.path.exists(videoname):
-        return base
-    outpath = join(path, 'images', base)
-    if os.path.exists(outpath) and len(os.listdir(outpath)) > 0:
-        num_images = len(os.listdir(outpath))
-        print('>> exists {} frames'.format(num_images))
-        return base
-    else:
-        os.makedirs(outpath, exist_ok=True)
-    video = cv2.VideoCapture(videoname)
-    totalFrames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-    for cnt in tqdm(range(totalFrames), desc='{:10s}'.format(os.path.basename(videoname))):
-        ret, frame = video.read()
-        if cnt < start:continue
-        if cnt >= end:break
-        if not ret:continue
-        cv2.imwrite(join(outpath, '{:06d}.jpg'.format(cnt)), frame)
-    video.release()
-    #return base
-    subs.append(base)
+    if os.path.exists(videoname):
+        outpath = join(path, 'images', os.path.basename(videoname).replace('.mp4', ''))
+        
+        if os.path.exists(outpath) and len(os.listdir(outpath)) > 0:
+            num_images = len(os.listdir(outpath))
+            print('>> exists {} frames'.format(num_images))
+            
+        else:
+            os.makedirs(outpath, exist_ok=True)
+            video = cv2.VideoCapture(videoname)
+            totalFrames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+            for cnt in tqdm(range(totalFrames), desc='{:10s}'.format(os.path.basename(videoname))):
+                ret, frame = video.read()
+                if cnt < start:continue
+                if cnt >= end:break
+                if not ret:continue
+                cv2.imwrite(join(outpath, '{:06d}.jpg'.format(cnt)), frame)
+            video.release()
 
 def extract_2d(openpose, image, keypoints, render, args):
     skip = False
@@ -147,6 +144,18 @@ def convert_from_openpose(path_orig, src, dst, annotdir):
         annot['annots'] = annots
         save_json(annotname, annot)
 
+def extract_2d_and_convert_from_openpose(args, image_root, openpose_path_joined, annot_root):
+    extract_2d(args.openpose, image_root, 
+        openpose_path_joined, 
+        join(args.path, 'openpose_render', sub), args)
+    
+    convert_from_openpose(
+        path_orig=args.path_origin,
+        src=openpose_path_joined,
+        dst=annot_root,
+        annotdir=args.annot
+    )
+
 def detect_frame(detector, img, pid=0):
     lDetections = detector.detect([img])[0]
     annots = []
@@ -247,6 +256,7 @@ if __name__ == "__main__":
         help='use the ground-truth bounding box, and hrnet to estimate human pose')
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--path_origin', default=os.getcwd())
+    parser.add_argument('--threading', action='store_true')
     args = parser.parse_args()
     mode = args.mode
 
@@ -258,37 +268,75 @@ if __name__ == "__main__":
         if len(subs_videos) > len(subs_image):
             videos = sorted(glob(join(args.path, 'videos', '*.mp4')))
             subs = []
-            threading_list = []
-            for video in videos:
-                temp_thread = threading.Thread(target=extract_video, args=(video, args.path, args.start, args.end, args.step, ))
-                temp_thread.start()
-                #basename = extract_video(video, args.path, start=args.start, end=args.end, step=args.step)
-                #subs.append(basename)
-            for threads in threading_list:
-                threads.join()
+            if args.threading:
+                threading_list = []
+                for video in videos:
+                    temp_thread = threading.Thread(target=extract_video, args=(video, args.path, args.start, args.end, args.step, ))
+                    threading_list.append(temp_thread)
+                    temp_thread.start()
+                    
+                    basename = os.path.basename(video).replace('.mp4', '')
+                    subs.append(basename)
+                    
+                for threads in threading_list:
+                    threads.join()
+                
+            else:
+                for video in videos:
+                    extract_video(video, args.path, start=args.start, end=args.end, step=args.step)
+                    
+                    basename = os.path.basename(video).replace('.mp4', '')
+                    subs.append(basename)
         else:
             subs = sorted(os.listdir(image_path))
         print('cameras: ', ' '.join(subs))
         if not args.no2d:
-            for sub in subs:
-                image_root = join(args.path, 'images', sub)
-                annot_root = join(args.path, args.annot, sub)
-                if os.path.exists(annot_root):
-                    # check the number of annots and images
-                    if len(os.listdir(image_root)) == len(os.listdir(annot_root)):
-                        print('skip ', annot_root)
-                        continue
-                if mode == 'openpose':
-                    extract_2d(args.openpose, image_root, 
-                        join(args.path, 'openpose', sub), 
-                        join(args.path, 'openpose_render', sub), args)
-                    convert_from_openpose(
-                        path_orig=args.path_origin,
-                        src=join(args.path, 'openpose', sub),
-                        dst=annot_root,
-                        annotdir=args.annot
-                    )
-                elif mode == 'yolo-hrnet':
-                    extract_yolo_hrnet(image_root, annot_root, args.ext, args.low)
+            if args.threading:
+                threading_list = []
+                for sub in subs:
+                    image_root = join(args.path, 'images', sub)
+                    annot_root = join(args.path, args.annot, sub)
+                    if os.path.exists(annot_root):
+                        # check the number of annots and images
+                        if len(os.listdir(image_root)) == len(os.listdir(annot_root)):
+                            print('skip ', annot_root)
+                            continue
+                        
+                    if mode == 'openpose':
+                        temp_thread = threading.Thread(target=extract_2d_and_convert_from_openpose, args=(args, image_root, join(args.path, 'openpose', sub), annot_root, ))
+                        threading_list.append(temp_thread)
+                        temp_thread.start()
+                        
+                    elif mode == 'yolo-hrnet':
+                        temp_thread = threading.Thread(target=extract_yolo_hrnet, args=(image_root, annot_root, args.ext, args.low, ))
+                        threading_list.append(temp_thread)
+                        temp_thread.start()
+                    
+                for threads in threading_list:
+                    threads.join()
+                        
+            else:
+                for sub in subs:
+                    image_root = join(args.path, 'images', sub)
+                    annot_root = join(args.path, args.annot, sub)
+                    if os.path.exists(annot_root):
+                        # check the number of annots and images
+                        if len(os.listdir(image_root)) == len(os.listdir(annot_root)):
+                            print('skip ', annot_root)
+                            continue
+                        
+                    if mode == 'openpose':
+                        extract_2d(args.openpose, image_root, 
+                            join(args.path, 'openpose', sub), 
+                            join(args.path, 'openpose_render', sub), args)
+                        convert_from_openpose(
+                            path_orig=args.path_origin,
+                            src=join(args.path, 'openpose', sub),
+                            dst=annot_root,
+                            annotdir=args.annot
+                        )
+                    elif mode == 'yolo-hrnet':
+                        extract_yolo_hrnet(image_root, annot_root, args.ext, args.low)
+                        
     else:
         print(args.path, ' not exists')
