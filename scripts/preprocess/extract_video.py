@@ -2,7 +2,7 @@
   @ Date: 2021-01-13 20:38:33
   @ Author: Qing Shuai
   @ LastEditors: Qing Shuai
-  @ LastEditTime: 2021-04-13 21:43:52
+  @ LastEditTime: 2021-10-12 21:43:52
   @ FilePath: /EasyMocapRelease/scripts/preprocess/extract_video.py
 '''
 import os, sys
@@ -281,7 +281,8 @@ if __name__ == "__main__":
                 for threads in threading_list:
                     threads.join()
                 
-                os.system('cls' if os.name == 'nt' else 'clear')
+                for i in range(15):
+                    print('')
                 
             else:
                 for video in videos:
@@ -317,7 +318,8 @@ if __name__ == "__main__":
                 for threads in threading_list:
                     threads.join()
                 
-                os.system('cls' if os.name == 'nt' else 'clear')
+                for i in range(15):
+                    print('')
                 print('Done')
                 print('')
                         
