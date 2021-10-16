@@ -11,10 +11,10 @@ import bpy
 from os.path import join
 import math
 import numpy as np
+import os
+import json
 from mathutils import Matrix, Vector, Quaternion, Euler
 
-def deg2rad(angle):
-    return -np.pi * (angle + 90) / 180.
 
 part_match = {'root': 'root', 'bone_00': 'Pelvis', 'bone_01': 'L_Hip', 'bone_02': 'R_Hip',
               'bone_03': 'Spine1', 'bone_04': 'L_Knee', 'bone_05': 'R_Knee', 'bone_06': 'Spine2',
@@ -22,6 +22,10 @@ part_match = {'root': 'root', 'bone_00': 'Pelvis', 'bone_01': 'L_Hip', 'bone_02'
               'bone_11': 'R_Foot', 'bone_12': 'Neck', 'bone_13': 'L_Collar', 'bone_14': 'R_Collar',
               'bone_15': 'Head', 'bone_16': 'L_Shoulder', 'bone_17': 'R_Shoulder', 'bone_18': 'L_Elbow',
               'bone_19': 'R_Elbow', 'bone_20': 'L_Wrist', 'bone_21': 'R_Wrist', 'bone_22': 'L_Hand', 'bone_23': 'R_Hand'}
+
+
+def deg2rad(angle):
+    return -np.pi * (angle + 90) / 180.
 
 
 def init_scene(params):
@@ -50,6 +54,57 @@ def init_scene(params):
 
     return (obj, obj_name, arm_obj)
 
+
+def read_json(path):
+    with open(path) as f:
+        data = json.load(f)
+    return data
+
+
+def read_smpl(path):
+    if os.path.exists(path):
+        datas = read_json(path)
+        outputs = []
+        for data in datas:
+            for key in ['Rh', 'Th', 'poses', 'shapes']:
+                data[key] = np.array(data[key])
+            outputs.append(data)
+
+        return outputs
+    else:
+        print(path, ' not found!')
+        quit()
+
+
+def merge_params(param_list):
+    output = {}
+    for key in ['poses', 'shapes', 'Rh', 'Th', 'expression']:
+        if key in param_list[0].keys():
+            output[key] = np.vstack([v[key] for v in param_list])
+
+    output['shapes'] = output['shapes'].mean(axis=0, keepdims=True)
+    return output
+
+
+def load_motions(datapath):
+    from glob import glob
+    filenames = sorted(glob(join(datapath, '*.json')))
+    print(filenames)
+    motions = {}
+    for filename in filenames:
+        infos = read_smpl(filename)
+        for data in infos:
+            pid = data['id']
+            if pid not in motions.keys():
+                motions[pid] = []
+            motions[pid].append(data)
+
+    for pid in motions.keys():
+        motions[pid] = merge_params(motions[pid])
+        motions[pid]['poses'][:, :3] = motions[pid]['Rh']
+    return motions
+
+
 def main(params):
     scene = bpy.data.scenes['Scene']
 
@@ -65,7 +120,9 @@ def main(params):
         bpy.data.shape_keys["Key"].key_blocks[k].slider_max = 10
 
     bpy.context.view_layer.objects.active = arm_obj
-    motions = load_smpl_params(params['path'])
+    motions = load_motions(params['path'])
+
+    quit()
     for pid, data in motions.items():
 
         # animation
