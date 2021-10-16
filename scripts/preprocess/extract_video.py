@@ -1,7 +1,7 @@
 '''
   @ Date: 2021-01-13 20:38:33
   @ Author: Qing Shuai
-  @ LastEditors: Qing Shuai
+  @ LastEditors: 532stary4
   @ LastEditTime: 2021-10-12 21:43:52
   @ FilePath: /EasyMocapRelease/scripts/preprocess/extract_video.py
 '''
