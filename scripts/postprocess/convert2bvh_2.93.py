@@ -55,6 +55,56 @@ def init_scene(params):
     return (obj, obj_name, arm_obj)
 
 
+def Rodrigues(rotvec):
+    theta = np.linalg.norm(rotvec)
+    r = (rotvec/theta).reshape(3, 1) if theta > 0. else rotvec
+    cost = np.cos(theta)
+    mat = np.asarray([[0, -r[2], r[1]],
+                      [r[2], 0, -r[0]],
+                      [-r[1], r[0], 0]])
+    return(cost*np.eye(3) + (1-cost)*r.dot(r.T) + np.sin(theta)*mat)
+
+def rodrigues2bshapes(pose):
+    rod_rots = np.asarray(pose).reshape(24, 3)
+    mat_rots = [Rodrigues(rod_rot) for rod_rot in rod_rots]
+    bshapes = np.concatenate([(mat_rot - np.eye(3)).ravel()
+                              for mat_rot in mat_rots[1:]])
+    return(mat_rots, bshapes)
+
+# apply trans pose and shape to character
+def apply_trans_pose_shape(trans, pose, shape, obj, arm_obj, obj_name, frame):
+    # transform pose into rotation matrices (for pose) and pose blendshapes
+    mrots, bsh = rodrigues2bshapes(pose)
+
+    # set the location of the first bone to the translation parameter
+    arm_obj.pose.bones[obj_name+'_Pelvis'].location = trans
+    arm_obj.pose.bones[obj_name+'_root'].location = trans
+    arm_obj.pose.bones[obj_name +'_root'].keyframe_insert('location', frame=frame)
+
+    # set the pose of each bone to the quaternion specified by pose
+    for ibone, mrot in enumerate(mrots):
+        bone = arm_obj.pose.bones[obj_name+'_'+part_match['bone_%02d' % ibone]]
+        bone.rotation_quaternion = Matrix(mrot).to_quaternion()
+        if frame is not None:
+            bone.keyframe_insert('rotation_quaternion', frame=frame)
+            bone.keyframe_insert('location', frame=frame)
+
+    # apply pose blendshapes
+    for ibshape, bshape in enumerate(bsh):
+        obj.data.shape_keys.key_blocks['Pose%03d' % ibshape].value = bshape
+        if frame is not None:
+            obj.data.shape_keys.key_blocks['Pose%03d' % ibshape].keyframe_insert(
+                'value', index=-1, frame=frame)
+
+    # apply shape blendshapes
+    for ibshape, shape_elem in enumerate(shape):
+        obj.data.shape_keys.key_blocks['Shape%03d' % ibshape].value = shape_elem
+        if frame is not None:
+            obj.data.shape_keys.key_blocks['Shape%03d' % ibshape].keyframe_insert(
+                'value', index=-1, frame=frame)
+
+
+
 def read_json(path):
     with open(path) as f:
         data = json.load(f)
@@ -106,8 +156,6 @@ def load_motions(datapath):
 
 
 def main(params):
-    scene = bpy.data.scenes['Scene']
-
     obj, obj_name, arm_obj = init_scene(params)
 
     bpy.ops.object.select_all(action='DESELECT')
@@ -122,19 +170,23 @@ def main(params):
     bpy.context.view_layer.objects.active = arm_obj
     motions = load_motions(params['path'])
 
-    quit()
     for pid, data in motions.items():
 
         # animation
         arm_obj.animation_data_clear()
 
         # load smpl params:
-
-
-
-
-
-
+        nFrames = data['poses'].shape[0]
+        for frame in range(nFrames):
+            print(frame)
+            trans = data['Th'][frame]
+            shape = data['shapes'][0]
+            pose = data['poses'][frame]
+            apply_trans_pose_shape(Vector(trans), pose, shape, obj,
+                                arm_obj, obj_name, frame)
+            bpy.context.view_layer.update()
+        bpy.ops.export_anim.bvh(filepath=join(params['out'], '{}.bvh'.format(pid)), frame_start=0, frame_end=nFrames-1)
+    return 0
 
 
 if __name__ == '__main__':
