@@ -89,7 +89,7 @@ def merge_params(param_list):
 def load_motions(datapath):
     from glob import glob
     filenames = sorted(glob(join(datapath, '*.json')))
-    print(filenames)
+    print(len(filenames))
     motions = {}
     for filename in filenames:
         infos = read_smpl(filename)
