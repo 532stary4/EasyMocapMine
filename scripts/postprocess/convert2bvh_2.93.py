@@ -55,13 +55,14 @@ def main(params):
 
     obj, obj_name, arm_obj = init_scene(params)
 
-    quit()
-    deselect()
+    bpy.ops.object.select_all(action='DESELECT')
     obj.select_set(True)
     bpy.context.view_layer.objects.active = obj
 
     # unblocking both the pose and the blendshape limits
-    # for loop
+    for k in obj.data.shape_keys.key_blocks.keys():
+        bpy.data.shape_keys["Key"].key_blocks[k].slider_min = -10
+        bpy.data.shape_keys["Key"].key_blocks[k].slider_max = 10
 
     bpy.context.view_layer.objects.active = arm_obj
     motions = load_smpl_params(params['path'])
@@ -69,7 +70,6 @@ def main(params):
 
         # animation
         arm_obj.animation_data_clear()
-        cam_obj.animation_data_clear()
 
         # load smpl params:
 
