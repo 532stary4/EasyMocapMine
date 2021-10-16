@@ -26,59 +26,36 @@ part_match = {'root': 'root', 'bone_00': 'Pelvis', 'bone_01': 'L_Hip', 'bone_02'
               'bone_19': 'R_Elbow', 'bone_20': 'L_Wrist', 'bone_21': 'R_Wrist', 'bone_22': 'L_Hand', 'bone_23': 'R_Hand'}
 
 
-def init_scene(scene, params):
-    gender = params['gender']
-    angle = 0
+def initiate_scene(params):
+    if (params['smplx']):
+        pass
+    else:
+        gender = params['gender']
 
-    # load fbx model
-    bpy.ops.import_scene.fbx(filepath=join(params['smpl_data_folder'], 'basicModel_%s_lbs_10_207_0_v1.0.2.fbx' % gender[0]), axis_forward='-Y', axis_up='-Z', global_scale=100)
-    
-    obj_name = '%s_avg' % gender[0]
-    obj = bpy.data.objects[obj_name]
+        # load fbx model
+        bpy.ops.import_scene.fbx(filepath=join(params['smpl_data_folder'], 'basicModel_%s_lbs_10_207_0_v1.0.2.fbx' % gender[0]), axis_forward='-Y', axis_up='-Z', global_scale=100)
+        
+        obj_name = '%s_avg' % gender[0]
+        obj = bpy.data.objects[obj_name]
 
-    # do i need it?
-    #bpy.data.meshes[obj_name].use_auto_smooth = False # autosmooth creates artifacts
+        # delete the default stuff
+        bpy.ops.object.select_all(action='DESELECT')
+        bpy.data.objects['Cube'].select_set(True)
+        bpy.data.objects['Camera'].select_set(True)
+        bpy.data.objects['Light'].select_set(True)
+        bpy.ops.object.delete()
 
-    # assign the existing spherical harmonics material
-    #obj.active_material = bpy.data.materials['Material']
+        # clear existing animation data
+        obj.data.shape_keys.animation_data_clear()
+        arm_obj = bpy.data.objects['Armature']
+        arm_obj.animation_data_clear()
 
-    # delete the default cube (which held the material)
-    bpy.ops.object.select_all(action='DESELECT')
-    bpy.data.objects['Camera'].select_set(True)
-    bpy.ops.object.delete()
-
-    # set camera properties and initial position
-    bpy.ops.object.select_all(action='DESELECT')
-    cam_obj = bpy.data.objects['Camera']
-    bpy.context.view_layer.objects.active = cam_obj
-
-    th = deg2rad(angle)
-
-    cam_obj.data.angle = math.radians(60)
-    cam_obj.data.lens = 60
-    cam_obj.data.clip_start = 0.1
-    cam_obj.data.sensor_width = 32
-
-    scene.view_layers[].use_pass_vector = True
-    scene.view_layers[].use_pass_normal = True
-    scene.view_layers[].use_pass_emit = True
-    scene.view_layers[].use_pass_material_index = True
-
-    # set render settings
-    scene.render.resolution_percentage = 100
-    scene.render.image_settings.file_format = 'PNG'
-
-    # clear existing animation data
-    obj.data.shape_keys.animation_data_clear()
-    arm_obj = bpy.data.objects['Armature']
-    arm_obj.animation_data_clear()
-
-    return (obj, obj_name, arm_obj, cam_obj)
+    return (obj, obj_name, arm_obj)
 
 def main(params):
     scene = bpy.data.scenes['Scene']
 
-    obj, obj_name, arm_obj, cam_obj = init_scene(scene, params)
+    obj, obj_name, arm_obj = initiate_scene(params)
 
     quit()
     deselect()
@@ -120,6 +97,7 @@ if __name__ == '__main__':
                 help='Output file or directory')
             parser.add_argument('--gender', type=str,
                 default='male')
+            parser.add_argument('--smplx', action='store_true')
             args = parser.parse_args(sys.argv[sys.argv.index('--') + 1:])
             print(vars(args))
             main(vars(args))
