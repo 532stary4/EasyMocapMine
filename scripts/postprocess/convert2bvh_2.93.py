@@ -103,7 +103,7 @@ def apply_trans_pose_shape(trans, pose, shape, obj, arm_obj, obj_name, frame):
 
     # set the pose of each bone to the quaternion specified by pose
     for ibone, mrot in enumerate(mrots):
-        print(ibone, mrot)
+        print(ibone)
         continue
         bone = arm_obj.pose.bones[obj_name+'_'+part_match['bone_%02d' % ibone]]
         bone.rotation_quaternion = Matrix(mrot).to_quaternion()
