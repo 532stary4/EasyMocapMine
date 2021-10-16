@@ -13,8 +13,6 @@ import math
 import numpy as np
 from mathutils import Matrix, Vector, Quaternion, Euler
 
-from scripts.postprocess.convert2bvh import init_scene
-
 def deg2rad(angle):
     return -np.pi * (angle + 90) / 180.
 
@@ -26,7 +24,7 @@ part_match = {'root': 'root', 'bone_00': 'Pelvis', 'bone_01': 'L_Hip', 'bone_02'
               'bone_19': 'R_Elbow', 'bone_20': 'L_Wrist', 'bone_21': 'R_Wrist', 'bone_22': 'L_Hand', 'bone_23': 'R_Hand'}
 
 
-def initiate_scene(params):
+def init_scene(params):
     if (params['smplx']):
         pass
     else:
@@ -55,7 +53,7 @@ def initiate_scene(params):
 def main(params):
     scene = bpy.data.scenes['Scene']
 
-    obj, obj_name, arm_obj = initiate_scene(params)
+    obj, obj_name, arm_obj = init_scene(params)
 
     quit()
     deselect()
