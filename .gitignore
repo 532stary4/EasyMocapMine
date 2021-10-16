@@ -108,6 +108,7 @@ exp/coco*
 *.weights
 .idea
 output
+data
 .DS*
 code_deprecate
 code
