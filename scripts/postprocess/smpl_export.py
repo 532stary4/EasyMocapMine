@@ -102,7 +102,7 @@ def rodrigues2bshapes(pose):
     return(mat_rots, bshapes)
 
 # apply trans pose and shape to character
-def apply_trans_pose_shape(trans, pose, shape, obj, arm_obj, obj_name, frame, smplx):
+def apply_trans_pose_shape(trans, pose, shape, obj, arm_obj, obj_name, frame, smplx, expression):
     # transform pose into rotation matrices (for pose) and pose blendshapes
     mrots, bsh = rodrigues2bshapes(pose)
 
@@ -119,6 +119,13 @@ def apply_trans_pose_shape(trans, pose, shape, obj, arm_obj, obj_name, frame, sm
             if frame is not None:
                 bone.keyframe_insert('rotation_quaternion', frame=frame)
                 bone.keyframe_insert('location', frame=frame)
+        
+        # apply expression blendshapes
+        for ibshape, exp_shape in enumerate(expression):
+            obj.data.shape_keys.key_blocks['Exp%03d' % ibshape].value = exp_shape
+            if frame is not None:
+                obj.data.shape_keys.key_blocks['Exp%03d' % ibshape].keyframe_insert(
+                    'value', index=-1, frame=frame)
     else:
         arm_obj.pose.bones[obj_name+'_Pelvis'].location = trans
         arm_obj.pose.bones[obj_name+'_root'].location = trans
@@ -219,8 +226,9 @@ def main(params):
             trans = data['Th'][frame]
             shape = data['shapes'][0]
             pose = data['poses'][frame]
+            expression = data['expression'][0]
 
-            apply_trans_pose_shape(Vector(trans), pose, shape, obj, arm_obj, obj_name, frame, params['smplx'])
+            apply_trans_pose_shape(Vector(trans), pose, shape, obj, arm_obj, obj_name, frame, params['smplx'], expression)
             bpy.context.view_layer.update()
 
         if (params['smplx']):
