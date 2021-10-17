@@ -92,22 +92,17 @@ BLENDER_PATH=<path_to_blender>/blender-2.79a-linux-glibc219-x86_64
 ${BLENDER_PATH}/blender -b -t 12 -P scripts/postprocess/convert2bvh.py -- <path_to_output_smpl> --o <output_path>
 ```
 
-To use the newer version of Blender 2.93 for bvh or fbx export get it and the SMPL-X addon for Blender.
-Use --bvh to export as bvh file otherwise fbx file will be created.
-
-```bash
-<path_to_blender>/blender -b -t 12 -P scripts/postprocess/smpl_export.py -- <path_to_output_smpl> --o <output_path>
-```
-
 ### Blender 2.93
 #### Setup
 To export SMPL you need the above SMPL-maya models like that.
 To export SMPL-X or to export as fbx you need to download, install and enable the SMPL-X Blender addon found on the SMPL-X website. You also need to run the SMPL-X reconstruction with --write_smpl_full for all of the data to be written.
 
+#### Usage
 ```bash
-<path_to_blender>/blender -b -t 12 -P scripts/postprocess/smpl_export.py --<path_to_output_smpl> --o <output_path>
+<path_to_blender_2.93>/blender -b -t 12 -P scripts/postprocess/smpl_export.py --<path_to_output_smpl> --o <output_path>
 ```
 
+Flags:
 - `--bvh`: export as bvh (if not used then fbx will be exported)
 - `--smplx`: export smplx data (if not used smpl will be used)
 
