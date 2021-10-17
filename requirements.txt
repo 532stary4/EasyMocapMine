@@ -1,3 +1,5 @@
+torch==1.4.0
+torchvision==0.5.0
 ipdb
 joblib
 tqdm
@@ -5,4 +7,3 @@ opencv-python
 pyrender
 yacs
 tabulate
-chumpy
