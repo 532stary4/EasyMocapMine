@@ -61,6 +61,7 @@ python3 scripts/preprocess/extract_video.py ${data} --openpose <openpose_path> -
 
 - `--openpose`: specify the openpose path
 - `--handface`: detect hands and face keypoints
+- `--threading`: use more than one thread for extracting
 
 ### 2. Run the code
 
