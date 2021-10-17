@@ -178,10 +178,10 @@ def main(params):
 
         if (params['bvh']):
             bpy.context.view_layer.objects.active = arm_obj
-            bpy.ops.export_anim.bvh(filepath=join(params['out'], '{}.bvh'.format(pid)), frame_start=0, frame_end=nFrames-1)
+            bpy.ops.export_anim.bvh(filepath=join(params['out'], 'SMPL_{}.bvh'.format(pid)), frame_start=0, frame_end=nFrames-1)
         else:
             bpy.context.view_layer.objects.active = obj
-            bpy.ops.object.smplx_export_unity_fbx(filepath=join(params['out'], '{}.fbx'.format(pid)), check_existing=False)
+            bpy.ops.object.smplx_export_unity_fbx(filepath=join(params['out'], 'SMPL_{}.fbx'.format(pid)), check_existing=False)
     
     return 0
 

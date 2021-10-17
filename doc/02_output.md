@@ -1,8 +1,8 @@
 <!--
  * @Date: 2021-03-07 14:41:22
  * @Author: Qing Shuai
- * @LastEditors: Qing Shuai
- * @LastEditTime: 2021-03-13 21:42:11
+ * @LastEditors: 532stary4
+ * @LastEditTime: 2021-10-17 21:42:11
  * @FilePath: /EasyMocap/doc/02_output.md
 -->
 # EasyMocap Doc - Output
@@ -69,6 +69,7 @@ vertices = body_model(return_verts=True, return_tensor=False, **info)[0]
 ```
 
 ## Export to bvh format
+# SMPL
 To export the SMPL results to bvh file, you need to download the SMPL-maya model from the website of SMPL. Place the `.fbx` model in `./data/smplx/SMPL_maya`, it may be like this:
 ```bash
 └── smplx
@@ -90,7 +91,18 @@ The Blender is also needed. The `<path_to_output_smpl>` is usually `${out}/smpl`
 BLENDER_PATH=<path_to_blender>/blender-2.79a-linux-glibc219-x86_64
 ${BLENDER_PATH}/blender -b -t 12 -P scripts/postprocess/convert2bvh.py -- <path_to_output_smpl> --o <output_path>
 ```
-We have not implement the export of SMPL+H, SMPL-X model yet. If you are interested on it, feel free to create a pull request to us.
+
+# SMPL-X
+To export SMPL-X results to bvh or fbx file, you need to have Blender and also get the SMPL-X Blender addon found on the SMPL-X website, and istall and enable it.
+You also need to run the SMPL-X reconstruction with --write_smpl_full for all of the data to be written.
+
+Use --bvh to export as bvh file otherwise fbx file will be created.
+
+```bash
+<path_to_blender>/blender -b -t 12 -P scripts/postprocess/smplx_export.py -- <path_to_output_smpl> --o <output_path>
+```
+
+We have not implement the export of SMPL+H. If you are interested on it, feel free to create a pull request to us.
 
 -----
 
