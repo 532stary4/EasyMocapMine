@@ -15,16 +15,6 @@ import os
 import json
 from mathutils import Matrix, Vector, Quaternion, Euler
 
-
-part_match = ['root', 'Pelvis', 'L_Hip', 'R_Hip',
-              'Spine1', 'L_Knee', 'R_Knee', 'Spine2',
-              'L_Ankle', 'R_Ankle', 'Spine3', 'L_Foot',
-              'R_Foot', 'Neck', 'L_Collar', 'R_Collar',
-              'Head', 'L_Shoulder', 'R_Shoulder', 'L_Elbow',
-              'R_Elbow', 'L_Wrist', 'R_Wrist', 'L_Hand',
-              'R_Hand'
-              ]
-
 smplx_joint_names = ['root', 'pelvis', 'left_hip', 'right_hip',
                      'spine1', 'left_knee', 'right_knee', 'spine2',
                      'left_ankle', 'right_ankle', 'spine3', 'left_foot',
@@ -48,26 +38,19 @@ def deg2rad(angle):
 
 def init_scene(params):
     gender = params['gender']
-    if (params['smplx']):
-        try:
-            # loads an smplx model using the addon
-            bpy.data.window_managers["WinMan"].smplx_tool.smplx_gender = gender
-            bpy.ops.scene.smplx_add_gender()
+    try:
+        # loads an smplx model using the addon
+        bpy.data.window_managers["WinMan"].smplx_tool.smplx_gender = gender
+        bpy.ops.scene.smplx_add_gender()
 
-            obj_name = 'SMPLX-mesh-' + gender
-            arm_obj_name = 'SMPLX-' + gender
+        obj_name = 'SMPLX-mesh-' + gender
+        arm_obj_name = 'SMPLX-' + gender
 
-        except AttributeError as e:
-            print('')
-            print(e)
-            print('Install and enable smplx addon for blender')
-            print('')
-    else:
-        # load fbx model
-        bpy.ops.import_scene.fbx(filepath=join(params['smpl_data_folder'], 'basicModel_%s_lbs_10_207_0_v1.0.2.fbx' % gender[0]), global_scale=100)
-        
-        obj_name = '%s_avg' % gender[0]
-        arm_obj_name = 'Armature'
+    except AttributeError as e:
+        print('')
+        print(e)
+        print('Install and enable smplx addon for blender')
+        print('')
 
     # delete the default stuff
     bpy.ops.object.select_all(action='DESELECT')
@@ -102,32 +85,22 @@ def rodrigues2bshapes(pose):
     return(mat_rots, bshapes)
 
 # apply trans pose and shape to character
-def apply_trans_pose_shape(trans, pose, shape, obj, arm_obj, obj_name, frame, smplx):
+def apply_trans_pose_shape(trans, pose, shape, obj, arm_obj, obj_name, frame):
     # transform pose into rotation matrices (for pose) and pose blendshapes
     mrots, bsh = rodrigues2bshapes(pose)
 
-    # set the pose of each bone to the quaternion specified by pose
-    if (smplx):
-        arm_obj.pose.bones['pelvis'].location = trans
-        arm_obj.pose.bones['root'].location = trans
-        arm_obj.pose.bones['root'].keyframe_insert('location', frame=frame)
-        for ibone, mrot in enumerate(mrots):
-            bone = arm_obj.pose.bones[smplx_joint_names[ibone + 1]]
-            bone.rotation_quaternion = Matrix(mrot).to_quaternion()
-            if frame is not None:
-                bone.keyframe_insert('rotation_quaternion', frame=frame)
-                bone.keyframe_insert('location', frame=frame)
+    # set the location of the first bone to the translation parameter
+    arm_obj.pose.bones['pelvis'].location = trans
+    arm_obj.pose.bones['root'].location = trans
+    arm_obj.pose.bones['root'].keyframe_insert('location', frame=frame)
 
-    else:
-        arm_obj.pose.bones[obj_name+'_Pelvis'].location = trans
-        arm_obj.pose.bones[obj_name+'_root'].location = trans
-        arm_obj.pose.bones[obj_name +'_root'].keyframe_insert('location', frame=frame)
-        for ibone, mrot in enumerate(mrots):
-            bone = arm_obj.pose.bones[obj_name+'_'+part_match[ibone + 1]]
-            bone.rotation_quaternion = Matrix(mrot).to_quaternion()
-            if frame is not None:
-                bone.keyframe_insert('rotation_quaternion', frame=frame)
-                bone.keyframe_insert('location', frame=frame)
+    # set the pose of each bone to the quaternion specified by pose
+    for ibone, mrot in enumerate(mrots):
+        bone = arm_obj.pose.bones[smplx_joint_names[ibone + 1]]
+        bone.rotation_quaternion = Matrix(mrot).to_quaternion()
+        if frame is not None:
+            bone.keyframe_insert('rotation_quaternion', frame=frame)
+            bone.keyframe_insert('location', frame=frame)
 
     # apply pose blendshapes
     for ibshape, bshape in enumerate(bsh):
@@ -206,6 +179,8 @@ def main(params):
     
     bpy.context.view_layer.objects.active = arm_obj
     motions = load_motions(params['path'])
+    print(len(motions.keys()))
+    quit()
     for pid, data in motions.items():
 
         arm_obj.animation_data_clear()
@@ -217,7 +192,7 @@ def main(params):
             shape = data['shapes'][0]
             pose = data['poses'][frame]
 
-            apply_trans_pose_shape(Vector(trans), pose, shape, obj, arm_obj, obj_name, frame, params['smplx'])
+            apply_trans_pose_shape(Vector(trans), pose, shape, obj, arm_obj, obj_name, frame)
             bpy.context.view_layer.update()
 
         bpy.ops.export_anim.bvh(filepath=join(params['out'], '{}.bvh'.format(pid)), frame_start=0, frame_end=nFrames-1)
@@ -239,7 +214,7 @@ if __name__ == '__main__':
                 help='Output file or directory')
             parser.add_argument('--gender', type=str,
                 default='male')
-            parser.add_argument('--smplx', action='store_true')
+            parser.add_argument('--bvh', action='store_true')
             args = parser.parse_args(sys.argv[sys.argv.index('--') + 1:])
             print(vars(args))
             main(vars(args))
