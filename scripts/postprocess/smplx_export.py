@@ -177,10 +177,9 @@ def main(params):
         bpy.data.shape_keys[0].key_blocks[k].slider_max = 10
 
     
-    bpy.context.view_layer.objects.active = arm_obj
     motions = load_motions(params['path'])
-    print(len(motions.keys()))
-    quit()
+    
+    # only ran once
     for pid, data in motions.items():
 
         arm_obj.animation_data_clear()
@@ -195,7 +194,12 @@ def main(params):
             apply_trans_pose_shape(Vector(trans), pose, shape, obj, arm_obj, obj_name, frame)
             bpy.context.view_layer.update()
 
-        bpy.ops.export_anim.bvh(filepath=join(params['out'], '{}.bvh'.format(pid)), frame_start=0, frame_end=nFrames-1)
+        if (params['bvh']):
+            bpy.context.view_layer.objects.active = arm_obj
+            bpy.ops.export_anim.bvh(filepath=join(params['out'], '{}.bvh'.format(pid)), frame_start=0, frame_end=nFrames-1)
+        else:
+            bpy.context.view_layer.objects.active = obj
+            bpy.ops.object.smplx_export_unity_fbx(filepath=join(params['out'], '{}.fbx'.format(pid)), check_existing=False)
     return 0
 
 
