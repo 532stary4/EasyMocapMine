@@ -9,11 +9,10 @@
 import sys
 import bpy
 from os.path import join
-import math
 import numpy as np
 import os
 import json
-from mathutils import Matrix, Vector, Quaternion, Euler
+from mathutils import Matrix, Vector
 
 smplx_joint_names = ['root', 'pelvis', 'left_hip', 'right_hip',
                      'spine1', 'left_knee', 'right_knee', 'spine2',
@@ -51,6 +50,7 @@ def init_scene(params):
         print(e)
         print('Install and enable smplx addon for blender')
         print('')
+        exit()
 
     # delete the default stuff
     bpy.ops.object.select_all(action='DESELECT')
@@ -200,6 +200,7 @@ def main(params):
         else:
             bpy.context.view_layer.objects.active = obj
             bpy.ops.object.smplx_export_unity_fbx(filepath=join(params['out'], '{}.fbx'.format(pid)), check_existing=False)
+    
     return 0
 
 
