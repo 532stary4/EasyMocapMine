@@ -24,6 +24,22 @@ part_match = ['root', 'Pelvis', 'L_Hip', 'R_Hip',
               'R_Hand'
               ]
 
+smplx_joint_names = ['root', 'pelvis', 'left_hip', 'right_hip',
+                     'spine1', 'left_knee', 'right_knee', 'spine2',
+                     'left_ankle', 'right_ankle', 'spine3', 'left_foot',
+                     'right_foot', 'neck', 'left_collar', 'right_collar',
+                     'head', 'left_shoulder', 'right_shoulder', 'left_elbow',
+                     'right_elbow', 'left_wrist', 'right_wrist', 'jaw',
+                     'left_eye_smplhf', 'right_eye_smplhf', 'left_index1', 'left_index2',
+                     'left_index3', 'left_middle1', 'left_middle2', 'left_middle3',
+                     'left_pinky1', 'left_pinky2', 'left_pinky3', 'left_ring1',
+                     'left_ring2', 'left_ring3', 'left_thumb1', 'left_thumb2',
+                     'left_thumb3', 'right_index1', 'right_index2', 'right_index3',
+                     'right_middle1', 'right_middle2', 'right_middle3', 'right_pinky1',
+                     'right_pinky2', 'right_pinky3', 'right_ring1', 'right_ring2',
+                     'right_ring3', 'right_thumb1', 'right_thumb2', 'right_thumb3'
+                     ]
+
 
 def deg2rad(angle):
     return -np.pi * (angle + 90) / 180.
@@ -31,11 +47,27 @@ def deg2rad(angle):
 
 def init_scene(params):
     gender = params['gender']
-    # load fbx model
-    bpy.ops.import_scene.fbx(filepath=join(params['smpl_data_folder'], 'basicModel_%s_lbs_10_207_0_v1.0.2.fbx' % gender[0]), global_scale=100)
-    
-    obj_name = '%s_avg' % gender[0]
-    arm_obj_name = 'Armature'
+    if (params['smplx']):
+        try:
+            # loads an smplx model using the addon
+            bpy.data.window_managers["WinMan"].smplx_tool.smplx_gender = gender
+            bpy.ops.scene.smplx_add_gender()
+
+            obj_name = 'SMPLX-mesh-' + gender
+            arm_obj_name = 'SMPLX-' + gender
+
+        except AttributeError as e:
+            print('')
+            print(e)
+            print('Install and enable smplx addon for blender')
+            print('')
+            exit()
+    else:
+        # load fbx model
+        bpy.ops.import_scene.fbx(filepath=join(params['smpl_data_folder'], 'basicModel_%s_lbs_10_207_0_v1.0.2.fbx' % gender[0]), global_scale=100)
+        
+        obj_name = '%s_avg' % gender[0]
+        arm_obj_name = 'Armature'
 
     # delete the default stuff
     bpy.ops.object.select_all(action='DESELECT')
@@ -70,21 +102,34 @@ def rodrigues2bshapes(pose):
     return(mat_rots, bshapes)
 
 # apply trans pose and shape to character
-def apply_trans_pose_shape(trans, pose, shape, obj, arm_obj, obj_name, frame):
+def apply_trans_pose_shape(trans, pose, shape, obj, arm_obj, obj_name, frame, smplx):
     # transform pose into rotation matrices (for pose) and pose blendshapes
     mrots, bsh = rodrigues2bshapes(pose)
 
-    # set the pose of each bone to the quaternion specified by pose
-    arm_obj.pose.bones[obj_name+'_Pelvis'].location = trans
-    arm_obj.pose.bones[obj_name+'_root'].location = trans
-    arm_obj.pose.bones[obj_name +'_root'].keyframe_insert('location', frame=frame)
-    
-    for ibone, mrot in enumerate(mrots):
-        bone = arm_obj.pose.bones[obj_name+'_'+part_match[ibone + 1]]
-        bone.rotation_quaternion = Matrix(mrot).to_quaternion()
-        if frame is not None:
-            bone.keyframe_insert('rotation_quaternion', frame=frame)
-            bone.keyframe_insert('location', frame=frame)
+    if (smplx):
+        # set the location of the first bone to the translation parameter
+        arm_obj.pose.bones['pelvis'].location = trans
+        arm_obj.pose.bones['root'].location = trans
+        arm_obj.pose.bones['root'].keyframe_insert('location', frame=frame)
+
+        # set the pose of each bone to the quaternion specified by pose
+        for ibone, mrot in enumerate(mrots):
+            bone = arm_obj.pose.bones[smplx_joint_names[ibone + 1]]
+            bone.rotation_quaternion = Matrix(mrot).to_quaternion()
+            if frame is not None:
+                bone.keyframe_insert('rotation_quaternion', frame=frame)
+                bone.keyframe_insert('location', frame=frame)
+    else:
+        arm_obj.pose.bones[obj_name+'_Pelvis'].location = trans
+        arm_obj.pose.bones[obj_name+'_root'].location = trans
+        arm_obj.pose.bones[obj_name +'_root'].keyframe_insert('location', frame=frame)
+        
+        for ibone, mrot in enumerate(mrots):
+            bone = arm_obj.pose.bones[obj_name+'_'+part_match[ibone + 1]]
+            bone.rotation_quaternion = Matrix(mrot).to_quaternion()
+            if frame is not None:
+                bone.keyframe_insert('rotation_quaternion', frame=frame)
+                bone.keyframe_insert('location', frame=frame)
 
     # apply pose blendshapes
     for ibshape, bshape in enumerate(bsh):
@@ -160,8 +205,10 @@ def main(params):
         bpy.data.shape_keys[0].key_blocks[k].slider_min = -10
         bpy.data.shape_keys[0].key_blocks[k].slider_max = 10
 
-
+    
     motions = load_motions(params['path'])
+    
+    # only ran once
     for pid, data in motions.items():
 
         arm_obj.animation_data_clear()
@@ -173,15 +220,20 @@ def main(params):
             shape = data['shapes'][0]
             pose = data['poses'][frame]
 
-            apply_trans_pose_shape(Vector(trans), pose, shape, obj, arm_obj, obj_name, frame)
+            apply_trans_pose_shape(Vector(trans), pose, shape, obj, arm_obj, obj_name, frame, params['smplx'])
             bpy.context.view_layer.update()
+
+        if (params['smplx']):
+            name = 'SMPLX_' + pid
+        else:
+            name = 'SMPL_' + pid
 
         if (params['bvh']):
             bpy.context.view_layer.objects.active = arm_obj
-            bpy.ops.export_anim.bvh(filepath=join(params['out'], 'SMPL_{}.bvh'.format(pid)), frame_start=0, frame_end=nFrames-1)
+            bpy.ops.export_anim.bvh(filepath=join(params['out'], name + '.bvh'), frame_start=0, frame_end=nFrames-1)
         else:
             bpy.context.view_layer.objects.active = obj
-            bpy.ops.object.smplx_export_unity_fbx(filepath=join(params['out'], 'SMPL_{}.fbx'.format(pid)), check_existing=False)
+            bpy.ops.object.smplx_export_unity_fbx(filepath=join(params['out'], name + '.fbx'), check_existing=False)
     
     return 0
 
@@ -201,6 +253,7 @@ if __name__ == '__main__':
                 help='Output file or directory')
             parser.add_argument('--gender', type=str,
                 default='male')
+            parser.add_argument('--smplx', action='store_true')
             parser.add_argument('--bvh', action='store_true')
             args = parser.parse_args(sys.argv[sys.argv.index('--') + 1:])
             print(vars(args))
