@@ -109,6 +109,8 @@ Flags:
 - `--bvh`: export as bvh (if not used then fbx will be exported)
 - `--smplx`: export smplx data (if not used smpl will be used)
 
+
+
 We have not implement the export of SMPL+H. If you are interested on it, feel free to create a pull request to us.
 
 -----
