@@ -232,9 +232,9 @@ def main(params):
             bpy.context.view_layer.update()
 
         if (params['smplx']):
-            name = 'SMPLX_' + pid
+            name = 'SMPLX_' + str(pid)
         else:
-            name = 'SMPL_' + pid
+            name = 'SMPL_' + str(pid)
 
         if (params['bvh']):
             bpy.context.view_layer.objects.active = arm_obj
