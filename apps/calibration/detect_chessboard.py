@@ -14,6 +14,7 @@ import numpy as np
 from os.path import join
 import cv2
 import os
+import threading
 
 def create_chessboard(path, pattern, gridSize, ext):
     print('Create chessboard {}'.format(pattern))
@@ -36,6 +37,21 @@ def create_chessboard(path, pattern, gridSize, ext):
         else:
             save_json(annname, template)
 
+def do_chess_stuff(dataset, args, i ,pattern, out, path):
+    imgname, annotname = dataset[i]
+    # detect the 2d chessboard
+    img = cv2.imread(imgname)
+    annots = read_json(annotname)
+    show = findChessboardCorners(img, annots, pattern)
+    save_json(annotname, annots)
+    if show is None:
+        if args.debug:
+            print('Cannot find {}'.format(imgname))
+        return
+    outname = join(out, imgname.replace(path + '/images/', ''))
+    os.makedirs(os.path.dirname(outname), exist_ok=True)
+    cv2.imwrite(outname, show)
+
 def detect_chessboard(path, out, pattern, gridSize, args):
     create_chessboard(path, pattern, gridSize, ext=args.ext)
     dataset = ImageFolder(path, annot='chessboard', ext=args.ext)
@@ -44,20 +60,17 @@ def detect_chessboard(path, out, pattern, gridSize, args):
         trange = range(len(dataset))
     else:
         trange = tqdm(range(len(dataset)))
+
+    threading_list = []
+    
     for i in trange:
-        imgname, annotname = dataset[i]
-        # detect the 2d chessboard
-        img = cv2.imread(imgname)
-        annots = read_json(annotname)
-        show = findChessboardCorners(img, annots, pattern)
-        save_json(annotname, annots)
-        if show is None:
-            if args.debug:
-                print('Cannot find {}'.format(imgname))
-            continue
-        outname = join(out, imgname.replace(path + '/images/', ''))
-        os.makedirs(os.path.dirname(outname), exist_ok=True)
-        cv2.imwrite(outname, show)
+        temp_thread = threading.Thread(target=do_chess_stuff, args=(dataset, args, i, pattern, out, path, ))
+        threading_list.append(temp_thread)
+        temp_thread.start()
+    
+    for threads in threading_list:
+        threads.join()
+        
 
 def detect_chessboard_sequence(path, out, pattern, gridSize, args):
     create_chessboard(path, pattern, gridSize, ext=args.ext)

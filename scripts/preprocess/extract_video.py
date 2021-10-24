@@ -17,7 +17,7 @@ mkdir = lambda x: os.makedirs(x, exist_ok=True)
 
 def extract_video(videoname, path, start, end, step):
     if os.path.exists(videoname):
-        outpath = join(path, 'images', os.path.basename(videoname).replace('.mp4', ''))
+        outpath = join(path, 'images', os.path.basename(videoname).replace('.'+args.filetype, ''))
         
         if os.path.exists(outpath) and len(os.listdir(outpath)) > 0:
             num_images = len(os.listdir(outpath))
@@ -257,6 +257,7 @@ if __name__ == "__main__":
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--path_origin', default=os.getcwd())
     parser.add_argument('--threading', action='store_true')
+    parser.add_argument('--filetype', type=str, default='mp4')
     args = parser.parse_args()
     mode = args.mode
 
@@ -264,9 +265,9 @@ if __name__ == "__main__":
         image_path = join(args.path, 'images')
         os.makedirs(image_path, exist_ok=True)
         subs_image = sorted(os.listdir(image_path))
-        subs_videos = sorted(glob(join(args.path, 'videos', '*.mp4')))
+        subs_videos = sorted(glob(join(args.path, 'videos', '*.'+args.filetype)))
         if len(subs_videos) > len(subs_image):
-            videos = sorted(glob(join(args.path, 'videos', '*.mp4')))
+            videos = sorted(glob(join(args.path, 'videos', '*.'+args.filetype)))
             subs = []
             if args.threading:
                 threading_list = []
@@ -275,7 +276,7 @@ if __name__ == "__main__":
                     threading_list.append(temp_thread)
                     temp_thread.start()
                     
-                    basename = os.path.basename(video).replace('.mp4', '')
+                    basename = os.path.basename(video).replace('.'+args.filetype, '')
                     subs.append(basename)
                     
                 for threads in threading_list:
@@ -288,7 +289,7 @@ if __name__ == "__main__":
                 for video in videos:
                     extract_video(video, args.path, start=args.start, end=args.end, step=args.step)
                     
-                    basename = os.path.basename(video).replace('.mp4', '')
+                    basename = os.path.basename(video).replace('.'+args.filetype, '')
                     subs.append(basename)
         else:
             subs = sorted(os.listdir(image_path))
